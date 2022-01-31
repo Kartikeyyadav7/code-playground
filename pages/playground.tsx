@@ -1,11 +1,5 @@
-import React from "react";
-
-// type PlaygroundProps =  {
-
-// }
-
 const Playground = () => {
-    return <div>Code playground</div>;
+    return <h2>This is a playground application</h2>;
 };
 
 export default Playground;

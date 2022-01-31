@@ -1,3 +1,4 @@
+import Playground from "@components/Playground";
 import type { NextPage } from "next";
 import Head from "next/head";
 
@@ -13,7 +14,7 @@ const Home: NextPage = () => {
                 <link rel="icon" href="/favicon.ico" />
             </Head>
 
-            <h1>SHow all the cards for the playground that we offer</h1>
+            <Playground />
         </div>
     );
 };
