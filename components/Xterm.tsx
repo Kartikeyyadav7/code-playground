@@ -1,7 +1,7 @@
 import * as React from "react";
 import PropTypes from "prop-types";
-
 import "xterm/css/xterm.css";
+import { FitAddon } from "xterm-addon-fit";
 
 // We are using these as types.
 // eslint-disable-next-line no-unused-vars
@@ -113,6 +113,8 @@ export default class Xterm extends React.Component<IProps> {
      */
     terminal!: Terminal; // This is assigned in the setupTerminal() which is called from the constructor
 
+    fitAddon!: FitAddon;
+
     static propTypes = {
         className: PropTypes.string,
         options: PropTypes.object,
@@ -154,12 +156,18 @@ export default class Xterm extends React.Component<IProps> {
         // Setup the XTerm terminal.
         this.terminal = new Terminal(this.props.options);
 
+        this.fitAddon = new FitAddon();
+
+        this.terminal.loadAddon(this.fitAddon);
+
         // Load addons if the prop exists.
         if (this.props.addons) {
             this.props.addons.forEach((addon) => {
                 this.terminal.loadAddon(addon);
             });
         }
+
+        // this.fitAddon.fit();
 
         // Create Listeners
         this.terminal.onBinary(this.onBinary);
@@ -181,8 +189,11 @@ export default class Xterm extends React.Component<IProps> {
 
     componentDidMount() {
         if (this.terminalRef.current) {
+            console.log(this.terminalRef.current);
             // Creates the terminal within the container element.
+
             this.terminal.open(this.terminalRef.current);
+            // this.fitAddon.fit();
         }
     }
 
