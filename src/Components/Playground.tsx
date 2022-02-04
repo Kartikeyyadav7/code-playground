@@ -1,7 +1,7 @@
 import Editor from "@monaco-editor/react";
-import { useEffect, useState, useRef } from "react";
-import Split from "react-split";
 import { XTerm } from "xterm-for-react";
+import { useRef, useEffect, useState } from "react";
+import Split from "react-split";
 
 const Playground = () => {
 	const [fileNames, setFileNames] = useState([]);
@@ -9,71 +9,65 @@ const Playground = () => {
 	const [lang, setLang] = useState("");
 	const [value, setValue] = useState("");
 
-	const fileSysWebSocket = useRef<WebSocket>();
-	const terminalWebSocket = useRef<WebSocket>();
-	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const xtermRef = useRef<XTerm>(null);
+	const terminalRef = useRef<WebSocket>();
+	const fileSysRef = useRef<WebSocket>();
+	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
 	useEffect(() => {
-		fileSysWebSocket.current = new WebSocket("ws://localhost:8081/fileSys");
-		fileSysWebSocket.current.onopen = () => {
+		console.log("Hello");
+
+		terminalRef.current = new WebSocket("ws://localhost:8080/terminal");
+
+		terminalRef.current.onopen = () => {
+			console.log("terminal started");
+		};
+
+		terminalRef.current.onmessage = (event) => {
+			console.log("got the msg from terminal");
+			xtermRef.current?.terminal.write(event.data);
+		};
+
+		const terminalRefCurrent = terminalRef.current;
+
+		return () => {
+			terminalRefCurrent.close();
+		};
+	}, []);
+
+	useEffect(() => {
+		fileSysRef.current = new WebSocket("ws://localhost:8080/fileSys");
+
+		fileSysRef.current.onopen = () => {
 			console.log("Opened");
-			fileSysWebSocket.current?.send(
+			fileSysRef.current?.send(
 				JSON.stringify({
 					type: "get-all-files",
 				})
 			);
 		};
-		fileSysWebSocket.current.onmessage = (event) => {
+		fileSysRef.current.onmessage = (event) => {
 			const parsedData = JSON.parse(event.data.toString());
 			console.log("recieved msg", parsedData);
 			if (parsedData.type === "update-all-files") {
 				setFileNames(parsedData.contents);
+				console.log(parsedData.contents);
 			}
 		};
 
-		const fileSysWebSocketCurrent = fileSysWebSocket.current;
+		const fileSysRefCurrent = fileSysRef.current;
 
 		return () => {
-			fileSysWebSocketCurrent.close();
+			fileSysRefCurrent.close();
 		};
 	}, []);
 
-	useEffect(() => {
-		terminalWebSocket.current = new WebSocket("ws://localhost:8081/terminal");
-		terminalWebSocket.current.onopen = () => {
-			console.log("Opened terminal connection");
-		};
-
-		terminalWebSocket.current.onmessage = (event) => {
-			console.log("message received in terminal");
-			console.log("Now I am getting data from pty", event.data);
-			// When there is data from PTY on server, print that on Terminal.
-			xtermRef.current?.terminal.write(event.data);
-		};
-
-		xtermRef.current?.terminal.onData((data: string) => {
-			console.log("Now data is being emitted", data);
-			terminalWebSocket.current?.send(data);
-		});
-
-		const terminalWebSocketCurrent = terminalWebSocket.current;
-		return () => {
-			terminalWebSocketCurrent.close();
-		};
-	}, []);
-
-	type fileNamesProp = {
-		fileName: string;
-		content: string;
-	};
-
-	console.log("fileNames", fileNames);
+	console.log(fileNames);
 
 	function handleEditorChange(value: string | undefined) {
 		console.log("here is the current model value:", value);
 		console.log("language", pathName);
-		fileSysWebSocket.current?.send(
+		fileSysRef.current?.send(
 			JSON.stringify({
 				type: "update-file",
 				content: {
@@ -83,7 +77,7 @@ const Playground = () => {
 			})
 		);
 		if (iframeRef.current) {
-			iframeRef.current.src = "http://localhost:1337";
+			iframeRef.current.src = "http://localhost:1338";
 		}
 	}
 
@@ -98,9 +92,17 @@ const Playground = () => {
 		setValue(name.content);
 	};
 
+	type fileNamesProp = {
+		fileName: string;
+		content: string;
+	};
+
 	return (
-		<>
-			<Split sizes={[20, 40, 40]} style={{ height: `100vh`, display: "flex" }}>
+		<div>
+			<Split
+				sizes={[25, 25, 25, 25]}
+				style={{ height: `100vh`, display: "flex" }}
+			>
 				<div style={{ display: "flex", flexDirection: "column" }}>
 					{fileNames !== [] ? (
 						<div style={{ display: "flex", flexDirection: "column" }}>
@@ -118,6 +120,7 @@ const Playground = () => {
 						<div>Loading...</div>
 					)}
 				</div>
+				{/* <Split direction="horizontal" sizes={[50, 50]}> */}
 				<Editor
 					theme="vs-dark"
 					path={pathName}
@@ -125,23 +128,17 @@ const Playground = () => {
 					defaultValue={value}
 					onChange={handleEditorChange}
 				/>
-
+				{/* </Split> */}
 				<iframe
 					ref={iframeRef}
 					title="Code"
 					onLoad={() => console.log("loaded")}
-					src="http://localhost:1337"
+					src="http://localhost:1338"
 					onError={() => console.log("error")}
 				/>
+				<XTerm ref={xtermRef} />
 			</Split>
-			<XTerm
-				ref={xtermRef}
-				options={{
-					rows: 10,
-					cols: 170,
-				}}
-			/>
-		</>
+		</div>
 	);
 };
 
