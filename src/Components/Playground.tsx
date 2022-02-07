@@ -28,9 +28,20 @@ const Playground = () => {
 			xtermRef.current?.terminal.write(event.data);
 		};
 
+		xtermRef.current?.terminal.onData((data) => {
+			console.log("msg for terminal", data);
+			terminalRef.current?.send(data);
+		});
+
+		terminalRef.current.onclose = () => {
+			xtermRef.current?.terminal.write("^C\r");
+		};
+
 		const terminalRefCurrent = terminalRef.current;
+		const xtermRefCurrent = xtermRef.current;
 
 		return () => {
+			xtermRefCurrent?.terminal.write("^C\r");
 			terminalRefCurrent.close();
 		};
 	}, []);
@@ -77,6 +88,7 @@ const Playground = () => {
 			})
 		);
 		if (iframeRef.current) {
+			console.log("updating the Iframe");
 			iframeRef.current.src = "http://localhost:1338";
 		}
 	}
@@ -100,7 +112,7 @@ const Playground = () => {
 	return (
 		<div>
 			<Split
-				sizes={[25, 25, 25, 25]}
+				sizes={[20, 30, 25, 25]}
 				style={{ height: `100vh`, display: "flex" }}
 			>
 				<div style={{ display: "flex", flexDirection: "column" }}>
@@ -132,7 +144,11 @@ const Playground = () => {
 				<iframe
 					ref={iframeRef}
 					title="Code"
-					onLoad={() => console.log("loaded")}
+					// onLoad={() => {
+					// 	if (iframeRef.current) {
+					// 		iframeRef.current.src = "http://localhost:1338";
+					// 	}
+					// }}
 					src="http://localhost:1338"
 					onError={() => console.log("error")}
 				/>
